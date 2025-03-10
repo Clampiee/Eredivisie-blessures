@@ -148,11 +148,21 @@ async function fetchInjuriesForFixture() {
         // Fetch team injuries and next fixtures
         const response = await fetch(url, options);
         const result = await response.json();
-        console.log(result);
+        console.log("API Response:", result);
 
-        // Fetch next fixture for each team and filter injuries based on fixture
+        if (!result.response || !Array.isArray(result.response)) {
+            console.error("Invalid API response structure:", result);
+            return;
+        }
+
         for (let entry of result.response) {
             const teamId = entry.team.id;
+
+            // Ensure entry.players is an array
+            if (!Array.isArray(entry.players)) {
+                console.warn(`entry.players is not an array for team ${teamId}`, entry);
+                entry.players = []; // Set to an empty array to avoid errors
+            }
 
             // Fetch the next fixture for the team
             const nextFixture = await getNextFixtureForTeam(teamId);
@@ -160,11 +170,10 @@ async function fetchInjuriesForFixture() {
             if (nextFixture) {
                 // Filter injuries for the next fixture
                 const fixtureDate = new Date(nextFixture.fixture.date);
-                const injuries = entry.players.filter(player => {
-                    return new Date(player.fixture.date).getTime() === fixtureDate.getTime();
+                const injuries = (entry.players || []).filter(player => {
+                    return player.fixture && new Date(player.fixture.date).getTime() === fixtureDate.getTime();
                 });
 
-                // Process injuries for the next fixture
                 entry.players = injuries;
             }
         }
