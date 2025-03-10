@@ -158,6 +158,9 @@ async function fetchInjuriesForFixture() {
         for (let entry of result.response) {
             const teamId = entry.team.id;
 
+            // Log entry to inspect its structure and validate players
+            console.log("Inspecting team entry:", entry);
+
             // Ensure entry.players is an array
             if (!Array.isArray(entry.players)) {
                 console.warn(`entry.players is not an array for team ${teamId}`, entry);
@@ -168,13 +171,18 @@ async function fetchInjuriesForFixture() {
             const nextFixture = await getNextFixtureForTeam(teamId);
 
             if (nextFixture) {
-                // Filter injuries for the next fixture
                 const fixtureDate = new Date(nextFixture.fixture.date);
-                const injuries = (entry.players || []).filter(player => {
-                    return player.fixture && new Date(player.fixture.date).getTime() === fixtureDate.getTime();
-                });
-
-                entry.players = injuries;
+                
+                // Check if `entry.players` is still an array before filtering
+                if (entry.players && Array.isArray(entry.players)) {
+                    const injuries = entry.players.filter(player => {
+                        return player.fixture && new Date(player.fixture.date).getTime() === fixtureDate.getTime();
+                    });
+                    entry.players = injuries;
+                } else {
+                    console.warn(`entry.players is not defined or not an array for team ${teamId}`, entry);
+                    entry.players = []; // Ensure it's safe to continue
+                }
             }
         }
 
